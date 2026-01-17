@@ -304,8 +304,67 @@ function calculateGrades(resultData) {
     return resultData;
 }
 
+// Demo endpoint for testing
+app.get('/api/demo', (req, res) => {
+    // Return mock result data
+    const demoData = {
+        studentName: 'VIJAY KUMAR',
+        enrollmentNo: '11015603123',
+        programme: 'B.Tech - Computer Science & Engineering',
+        semesters: [
+            {
+                semester: 1,
+                subjects: [
+                    { code: 'ES-101', name: 'Engineering Physics', internal: 23, external: 67, total: 90 },
+                    { code: 'ES-102', name: 'Engineering Chemistry', internal: 21, external: 60, total: 81 },
+                    { code: 'ES-103', name: 'Mathematics-I', internal: 24, external: 70, total: 94 },
+                    { code: 'ES-104', name: 'English', internal: 20, external: 58, total: 78 },
+                    { code: 'ES-105', name: 'Engineering Graphics', internal: 18, external: 52, total: 70 }
+                ]
+            },
+            {
+                semester: 2,
+                subjects: [
+                    { code: 'ES-111', name: 'Mathematics-II', internal: 22, external: 65, total: 87 },
+                    { code: 'ES-112', name: 'Basic Electronics', internal: 19, external: 55, total: 74 },
+                    { code: 'ES-113', name: 'Programming in C', internal: 25, external: 71, total: 96 },
+                    { code: 'ES-114', name: 'Environmental Studies', internal: 20, external: 60, total: 80 },
+                    { code: 'ES-115', name: 'Workshop Practice', internal: 22, external: 63, total: 85 }
+                ]
+            },
+            {
+                semester: 3,
+                subjects: [
+                    { code: 'ES-121', name: 'Data Structures', internal: 24, external: 68, total: 92 },
+                    { code: 'ES-122', name: 'Computer Organization', internal: 21, external: 59, total: 80 },
+                    { code: 'ES-123', name: 'Digital Electronics', internal: 23, external: 66, total: 89 },
+                    { code: 'ES-124', name: 'Mathematics-III', internal: 22, external: 64, total: 86 },
+                    { code: 'ES-125', name: 'Operating Systems', internal: 25, external: 70, total: 95 }
+                ]
+            },
+            {
+                semester: 4,
+                subjects: [
+                    { code: 'ES-131', name: 'Database Management Systems', internal: 23, external: 65, total: 88 },
+                    { code: 'ES-132', name: 'Computer Networks', internal: 24, external: 69, total: 93 },
+                    { code: 'ES-133', name: 'Software Engineering', internal: 22, external: 62, total: 84 },
+                    { code: 'ES-134', name: 'Theory of Computation', internal: 21, external: 58, total: 79 },
+                    { code: 'ES-135', name: 'Microprocessors', internal: 20, external: 56, total: 76 }
+                ]
+            }
+        ]
+    };
+    
+    const calculatedResults = calculateGrades(demoData);
+    res.json({
+        success: true,
+        data: calculatedResults
+    });
+});
+
 // Start server
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
     console.log(`Open http://localhost:${PORT} in your browser`);
+    console.log(`Demo mode available at: http://localhost:${PORT}/api/demo`);
 });

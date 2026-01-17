@@ -167,6 +167,38 @@ header p {
     background: #5a6268;
 }
 
+/* Demo Section */
+.demo-section {
+    margin-top: 30px;
+    padding-top: 30px;
+    border-top: 2px solid #e0e0e0;
+    text-align: center;
+}
+
+.demo-text {
+    color: #666;
+    margin-bottom: 15px;
+    font-size: 1rem;
+}
+
+.btn-demo {
+    width: 100%;
+    padding: 14px;
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.btn-demo:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(40, 167, 69, 0.4);
+}
+
 /* Error Message */
 .error-message {
     margin-top: 15px;

@@ -11,6 +11,7 @@ const refreshCaptchaBtn = document.getElementById('refreshCaptcha');
 const loginError = document.getElementById('loginError');
 const loadingOverlay = document.getElementById('loadingOverlay');
 const backBtn = document.getElementById('backBtn');
+const demoBtn = document.getElementById('demoBtn');
 
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
@@ -23,6 +24,7 @@ function setupEventListeners() {
     loginForm.addEventListener('submit', handleLogin);
     refreshCaptchaBtn.addEventListener('click', loadCaptcha);
     backBtn.addEventListener('click', backToLogin);
+    demoBtn.addEventListener('click', handleDemo);
 }
 
 // Load captcha image
@@ -88,6 +90,29 @@ async function handleLogin(e) {
     } catch (error) {
         console.error('Login error:', error);
         showError('Network error. Please try again.');
+    } finally {
+        hideLoading();
+    }
+}
+
+// Handle demo mode
+async function handleDemo() {
+    try {
+        showLoading();
+        hideError();
+        
+        const response = await fetch('/api/demo');
+        const data = await response.json();
+        
+        if (data.success) {
+            resultData = data.data;
+            displayResults();
+        } else {
+            showError('Failed to load demo data');
+        }
+    } catch (error) {
+        console.error('Demo error:', error);
+        showError('Failed to load demo data');
     } finally {
         hideLoading();
     }
@@ -203,7 +228,7 @@ function displaySGPAChart() {
     const data = resultData.semesters.map(sem => parseFloat(sem.sgpa));
     
     // Destroy existing chart if any
-    if (window.sgpaChart) {
+    if (window.sgpaChart && typeof window.sgpaChart.destroy === 'function') {
         window.sgpaChart.destroy();
     }
     
@@ -262,7 +287,7 @@ function displaySubjectChart() {
     const data = subjects.map(s => s.value);
     
     // Destroy existing chart if any
-    if (window.subjectChart) {
+    if (window.subjectChart && typeof window.subjectChart.destroy === 'function') {
         window.subjectChart.destroy();
     }
     
