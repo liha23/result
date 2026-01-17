@@ -3,15 +3,228 @@
 This document provides a comprehensive reverse-engineered flowchart of the GGSIPU Result Viewer application, documenting its architecture, workflows, and data flows.
 
 ## Table of Contents
-1. [Overall System Architecture](#overall-system-architecture)
-2. [Application Initialization Flow](#application-initialization-flow)
-3. [CAPTCHA Fetching Workflow](#captcha-fetching-workflow)
-4. [Login and Authentication Flow](#login-and-authentication-flow)
-5. [Result Fetching and Parsing Flow](#result-fetching-and-parsing-flow)
-6. [CGPA/SGPA Calculation Logic](#cgpasgpa-calculation-logic)
-7. [Data Visualization Flow](#data-visualization-flow)
-8. [Demo Mode Flow](#demo-mode-flow)
-9. [Error Handling Flow](#error-handling-flow)
+1. [Quick Overview - Simplified Flows](#quick-overview---simplified-flows)
+2. [Overall System Architecture](#overall-system-architecture)
+3. [Application Initialization Flow](#application-initialization-flow)
+4. [CAPTCHA Fetching Workflow](#captcha-fetching-workflow)
+5. [Login and Authentication Flow](#login-and-authentication-flow)
+6. [Result Fetching and Parsing Flow](#result-fetching-and-parsing-flow)
+7. [CGPA/SGPA Calculation Logic](#cgpasgpa-calculation-logic)
+8. [Data Visualization Flow](#data-visualization-flow)
+9. [Demo Mode Flow](#demo-mode-flow)
+10. [Error Handling Flow](#error-handling-flow)
+
+---
+
+## Quick Overview - Simplified Flows
+
+This section provides simplified, easy-to-understand flowcharts of the key processes in the GGSIPU Result Viewer application.
+
+### Complete Login and Result Fetching Process
+
+```
+Start
+  ↓
+Open Website/App
+  ↓
+User Loads Page
+  ↓
+Frontend Requests CAPTCHA
+  ↓
+Backend Connects to GGSIPU Portal
+  ↓
+Establish Session with Portal
+  ↓
+Fetch CAPTCHA Image from Portal
+  ↓
+Store Session Cookies
+  ↓
+Return CAPTCHA to Frontend
+  ↓
+Display CAPTCHA to User
+  ↓
+User Enters Credentials:
+  - Enrollment Number
+  - Password
+  - CAPTCHA Text
+  ↓
+User Clicks "Login & Fetch Results"
+  ↓
+Frontend Sends Login Request
+  ↓
+Backend Receives Request
+  ↓
+Validate Input Fields
+  ↓
+Submit Credentials to GGSIPU Portal
+  ↓
+GGSIPU Portal Validates CAPTCHA
+  ↓
+GGSIPU Portal Validates Credentials
+  ↓
+Is Valid?
+ ├─ No → Error Message → Refresh CAPTCHA → Retry Login
+ └─ Yes
+        ↓
+   Portal Creates Session
+        ↓
+   Backend Fetches Result Page HTML
+        ↓
+   Parse HTML with Cheerio
+        ↓
+   Extract Student Data:
+     - Name
+     - Enrollment No
+     - Programme
+        ↓
+   Extract Semester Results:
+     - Subject Codes
+     - Subject Names
+     - Internal Marks
+     - External Marks
+     - Total Marks
+        ↓
+   Map Subject Codes to Credits (from CSV)
+        ↓
+   Calculate Grade Points (based on marks)
+        ↓
+   Calculate SGPA (per semester)
+        ↓
+   Calculate Overall CGPA
+        ↓
+   Return Result Data to Frontend
+        ↓
+   Frontend Displays Results:
+     - Student Information
+     - CGPA with Progress Bar
+     - Semester-wise SGPA Charts
+     - Subject-wise Performance Graphs
+     - Detailed Marks Tables
+        ↓
+       End
+```
+
+### CAPTCHA Fetching Flow (Simplified)
+
+```
+Start
+  ↓
+Generate/Use Session ID
+  ↓
+Backend: Connect to GGSIPU Portal
+  ↓
+Request: GET https://examweb.ggsipu.ac.in/web/login.jsp
+  ↓
+Store Session Cookies from Response
+  ↓
+Request: GET https://examweb.ggsipu.ac.in/web/CaptchaServlet
+  ↓
+Receive CAPTCHA Image (JPEG/PNG)
+  ↓
+Convert Image to Base64 Format
+  ↓
+Return JSON to Frontend:
+  - sessionId
+  - captcha (base64 image)
+  ↓
+Frontend: Display CAPTCHA Image
+  ↓
+End
+```
+
+### Result Fetching Flow (Simplified)
+
+```
+Start
+  ↓
+Backend: Receive Login Credentials
+  ↓
+Use Stored Session Cookies
+  ↓
+POST to https://examweb.ggsipu.ac.in/web/studentlogin.do
+  - enrollmentNo
+  - password
+  - captcha
+  ↓
+Check Response for Errors
+  ↓
+Is Authentication Successful?
+ ├─ No → Return Error Message
+ └─ Yes
+        ↓
+   Try Multiple Result URLs:
+     - view-result.do
+     - viewResult.do
+     - result.do
+     - viewstudentresult.do
+        ↓
+   Found Valid Result Page?
+    ├─ No → Return "Could Not Fetch Results"
+    └─ Yes
+           ↓
+      Parse HTML Tables with Cheerio
+           ↓
+      Extract Student Information
+           ↓
+      Extract All Semester Data
+           ↓
+      For Each Semester:
+        - Extract Subject Details
+        - Map Codes to Credits (CSV lookup)
+        - Calculate Grade Points
+        - Calculate SGPA
+           ↓
+      Calculate Overall CGPA
+           ↓
+      Return Complete Result Data
+           ↓
+          End
+```
+
+### Grade Calculation Flow (Simplified)
+
+```
+Start (For Each Subject)
+  ↓
+Get Total Marks (Internal + External)
+  ↓
+Determine Grade Point:
+  - 90-100 → 10
+  - 75-89  → 9
+  - 65-74  → 8
+  - 55-64  → 7
+  - 50-54  → 6
+  - 45-49  → 5
+  - 40-44  → 4
+  - <40    → 0 (Fail)
+  ↓
+Lookup Credits from CSV Database
+  (13,200+ subject codes)
+  ↓
+Credits Found?
+ ├─ No → Use Default 3 Credits (with warning)
+ └─ Yes → Use Mapped Credits
+        ↓
+   Calculate: Grade Points × Credits
+        ↓
+   Add to Semester Totals
+        ↓
+   More Subjects?
+    ├─ Yes → (Loop back to next subject)
+    └─ No
+           ↓
+      Calculate SGPA:
+        = Total Grade Points ÷ Total Credits
+           ↓
+      More Semesters?
+       ├─ Yes → (Process next semester)
+       └─ No
+              ↓
+         Calculate CGPA:
+           = All Grade Points ÷ All Credits
+              ↓
+             End
+```
 
 ---
 
