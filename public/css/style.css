@@ -67,6 +67,14 @@ header p {
     display: none !important;
 }
 
+/* Info Text */
+.info-text {
+    color: #666;
+    margin-bottom: 20px;
+    font-size: 0.95rem;
+    text-align: center;
+}
+
 /* Form Styles */
 .form-group {
     margin-bottom: 20px;

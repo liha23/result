@@ -89,18 +89,35 @@ The application uses the following grading scheme:
 
 ## Usage
 
+### Testing with Demo Mode
 1. **Open the application** in your web browser
-2. **Enter your credentials**:
-   - Enrollment Number
-   - Password
-   - CAPTCHA (displayed on screen)
-3. **Click "Login & Fetch Results"**
-4. **View your results** with:
-   - Student information
-   - Overall CGPA
-   - Semester-wise SGPA
-   - Subject-wise marks (internal + external)
+2. **Click "View Demo Results"** button to see the interface with sample data
+3. View demo student results with calculated CGPA/SGPA
+
+### Using with Real GGSIPU Credentials
+1. **Open the application** in your web browser
+2. **Wait for CAPTCHA to load** from GGSIPU portal (or click refresh icon)
+3. **Enter your GGSIPU credentials**:
+   - Enrollment Number (e.g., 11015603123)
+   - Password (e.g., VIJAY KUMAR)
+   - CAPTCHA text (as shown in the image)
+4. **Click "Login & Fetch Results"**
+5. **View your results** with:
+   - Student information from GGSIPU portal
+   - Overall CGPA (calculated)
+   - Semester-wise SGPA (calculated)
+   - Subject-wise marks (internal + external from portal)
    - Visual charts and graphs
+
+### Example Test Credentials
+For development/testing purposes:
+```
+Enrollment Number: 11015603123
+Password: VIJAY KUMAR
+CAPTCHA: [Enter the text shown in CAPTCHA image]
+```
+
+**Note**: CAPTCHA must be entered correctly each time as it changes with every request.
 
 ## API Endpoints
 
