@@ -115,7 +115,7 @@ app.get('/api/captcha', async (req, res) => {
         console.error('Captcha error:', error.message);
         res.status(500).json({
             success: false,
-            error: 'Failed to fetch captcha'
+            error: 'Failed to fetch captcha. Please check your connection or try Demo Mode.'
         });
     }
 });
