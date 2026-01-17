@@ -4,6 +4,8 @@ A full-stack web application that acts as a wrapper/proxy to fetch student resul
 
 📊 **[View System Architecture Flowchart](FLOWCHART.md)** - Comprehensive reverse-engineered documentation of the application's architecture, workflows, and data flows.
 
+📄 **[Download Flowchart PDF](FLOWCHART.pdf)** - PDF version of the system architecture flowchart for offline viewing.
+
 ## Features
 
 - **Real GGSIPU Portal Integration**: Directly fetches results from the official GGSIPU examination portal
@@ -34,8 +36,10 @@ A full-stack web application that acts as a wrapper/proxy to fetch student resul
 /
 ├── server.js                                          # Express backend server with GGSIPU integration
 ├── package.json                                       # Node.js dependencies
+├── generate-flowchart-pdf.js                          # PDF generation script
 ├── ipu_all_subjects_all_years_all_branches.csv       # Subject credits database
 ├── FLOWCHART.md                                       # System architecture flowchart documentation
+├── FLOWCHART.pdf                                      # PDF version of flowchart (generated)
 ├── public/                                            # Frontend files
 │   ├── index.html                                    # Main HTML file
 │   ├── css/
@@ -89,6 +93,12 @@ The application uses the following grading scheme:
    ```
    http://localhost:3000
    ```
+
+5. **(Optional) Generate PDF documentation**
+   ```bash
+   npm run generate-pdf
+   ```
+   This generates `FLOWCHART.pdf` from the markdown documentation.
 
 ## Usage
 
