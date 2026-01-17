@@ -229,10 +229,13 @@ The application automatically:
 ## Important Notes
 
 - **CORS Bypass**: The backend proxy is essential to bypass CORS restrictions from GGSIPU portal
-- **Session Management**: Sessions are maintained in memory for each user request
+- **Session Management**: Sessions are maintained in memory for demo purposes. For production deployments, use Redis or database-backed sessions
+- **HTML Parsing**: The current HTML parser is a placeholder. Production use requires implementing proper parsing based on actual GGSIPU portal structure
+- **Credit Defaults**: If a subject code is not found in the CSV, it defaults to 3 credits with a warning logged
 - **Security**: Do not commit sensitive credentials to version control
 - **Testing**: Test credentials are for development purposes only
 - **Rate Limiting**: Be mindful of request rates to GGSIPU portal
+- **Development**: Use `npm run dev` for development with auto-restart on file changes
 
 ## Troubleshooting
 

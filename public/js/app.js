@@ -282,6 +282,8 @@ function displaySubjectChart() {
     });
     
     // Limit to first 10 subjects for better visualization
+    // NOTE: For students with many subjects, consider implementing pagination
+    // or making this limit configurable
     const subjects = allSubjects.slice(0, 10);
     const labels = subjects.map(s => s.label);
     const data = subjects.map(s => s.value);

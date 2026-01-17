@@ -16,6 +16,8 @@ app.use(cookieParser());
 app.use(express.static('public'));
 
 // Store session cookies for each user session
+// NOTE: In-memory storage will lose data on restart. For production,
+// consider using Redis or a database-backed session store.
 const sessions = new Map();
 
 // Load credits from CSV file
@@ -176,8 +178,10 @@ app.post('/api/login', async (req, res) => {
 
 // Helper function to parse result HTML
 function parseResultHTML(html) {
-    // This is a simplified parser - actual implementation would need to parse the specific HTML structure
-    // For now, return mock data structure that matches expected format
+    // NOTE: This parser is a placeholder implementation. The actual GGSIPU result page
+    // structure needs to be analyzed and proper HTML parsing implemented using libraries
+    // like cheerio or jsdom. The current implementation attempts basic regex parsing
+    // but may not work with the actual GGSIPU portal structure.
     const result = {
         studentName: '',
         enrollmentNo: '',
@@ -282,13 +286,20 @@ function calculateGrades(resultData) {
         
         semester.subjects.forEach(subject => {
             const gradePoint = getGradePoint(subject.total);
-            const credits = creditsMap[subject.code] || 3; // Default to 3 if not found
+            const credits = creditsMap[subject.code];
+            
+            // Use default credits if not found in CSV, and log warning
+            if (!credits) {
+                console.warn(`Subject code ${subject.code} not found in CSV, using default 3 credits`);
+                subject.credits = 3;
+            } else {
+                subject.credits = credits;
+            }
             
             subject.gradePoint = gradePoint;
-            subject.credits = credits;
             
-            semesterGradePoints += gradePoint * credits;
-            semesterCredits += credits;
+            semesterGradePoints += gradePoint * subject.credits;
+            semesterCredits += subject.credits;
         });
         
         semester.sgpa = semesterCredits > 0 ? (semesterGradePoints / semesterCredits).toFixed(2) : '0.00';
