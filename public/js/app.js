@@ -31,21 +31,71 @@ function setupEventListeners() {
 async function loadCaptcha() {
     try {
         showLoading();
+        hideError();
+        
+        // Show loading state on captcha image
+        captchaImage.alt = 'Loading captcha...';
+        captchaImage.src = '';
+        
         const response = await fetch(`/api/captcha?sessionId=${sessionId || ''}`);
         const data = await response.json();
         
         if (data.success) {
             sessionId = data.sessionId;
             captchaImage.src = data.captcha;
+            captchaImage.alt = 'CAPTCHA Image';
         } else {
-            showError('Failed to load captcha');
+            // Show error message based on error code
+            let errorMsg = data.error || 'Failed to load captcha';
+            
+            if (data.errorCode === 'CONNECTION_FAILED' || data.errorCode === 'PORTAL_UNAVAILABLE') {
+                errorMsg = 'Unable to connect to GGSIPU portal. You can use Demo Mode to test the application.';
+            } else if (data.errorCode === 'TIMEOUT') {
+                errorMsg = 'Connection timed out. Click the refresh button to try again.';
+            }
+            
+            showError(errorMsg);
+            captchaImage.alt = 'Captcha unavailable - Click refresh to retry';
+            
+            // Show a placeholder message
+            showCaptchaPlaceholder();
         }
     } catch (error) {
         console.error('Captcha error:', error);
-        showError('Failed to load captcha');
+        showError('Failed to load captcha. Please check your connection or try Demo Mode.');
+        captchaImage.alt = 'Captcha unavailable - Click refresh to retry';
+        showCaptchaPlaceholder();
     } finally {
         hideLoading();
     }
+}
+
+// Show placeholder when captcha fails to load
+function showCaptchaPlaceholder() {
+    // Create a simple canvas-based placeholder for the captcha
+    const canvas = document.createElement('canvas');
+    canvas.width = 150;
+    canvas.height = 60;
+    const ctx = canvas.getContext('2d');
+    
+    // Background
+    ctx.fillStyle = '#f5f5f5';
+    ctx.fillRect(0, 0, 150, 60);
+    
+    // Border
+    ctx.strokeStyle = '#ddd';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(1, 1, 148, 58);
+    
+    // Text
+    ctx.fillStyle = '#999';
+    ctx.font = '12px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('CAPTCHA', 75, 25);
+    ctx.font = '10px sans-serif';
+    ctx.fillText('Click refresh', 75, 42);
+    
+    captchaImage.src = canvas.toDataURL('image/png');
 }
 
 // Handle login

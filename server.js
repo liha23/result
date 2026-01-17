@@ -93,29 +93,93 @@ app.get('/api/captcha', async (req, res) => {
         
         // First, get the login page to establish session
         const axiosInstance = createAxiosInstance(sessionId);
+        
+        console.log('Fetching login page to establish session...');
         const loginPageResponse = await axiosInstance.get('https://examweb.ggsipu.ac.in/web/login.jsp');
+        
+        if (loginPageResponse.status !== 200) {
+            console.error('Failed to load login page, status:', loginPageResponse.status);
+            return res.status(503).json({
+                success: false,
+                error: 'GGSIPU portal is currently unavailable. Please try again later.',
+                errorCode: 'PORTAL_UNAVAILABLE'
+            });
+        }
+        
         storeCookies(sessionId, loginPageResponse);
         
-        // Then fetch the captcha
+        // Then fetch the captcha image from CaptchaServlet
+        console.log('Fetching captcha image from CaptchaServlet...');
         const captchaResponse = await axiosInstance.get(
-            'https://examweb.ggsipu.ac.in/web/captcha.jsp',
+            'https://examweb.ggsipu.ac.in/web/CaptchaServlet',
             { responseType: 'arraybuffer' }
         );
+        
+        if (captchaResponse.status !== 200) {
+            console.error('Failed to load captcha, status:', captchaResponse.status);
+            return res.status(503).json({
+                success: false,
+                error: 'Failed to load captcha from GGSIPU portal. Please try again.',
+                errorCode: 'CAPTCHA_FETCH_FAILED'
+            });
+        }
+        
         storeCookies(sessionId, captchaResponse);
+        
+        // Verify we got image data
+        if (!captchaResponse.data || captchaResponse.data.length === 0) {
+            console.error('Empty captcha response');
+            return res.status(503).json({
+                success: false,
+                error: 'Received empty captcha from GGSIPU portal. Please try again.',
+                errorCode: 'CAPTCHA_EMPTY'
+            });
+        }
         
         // Convert image to base64
         const base64Image = Buffer.from(captchaResponse.data, 'binary').toString('base64');
         
+        // Detect image type from response headers
+        const contentType = captchaResponse.headers['content-type'] || '';
+        let mimeType = 'image/jpeg'; // default
+        
+        if (contentType.includes('png')) {
+            mimeType = 'image/png';
+        } else if (contentType.includes('gif')) {
+            mimeType = 'image/gif';
+        } else if (contentType.includes('webp')) {
+            mimeType = 'image/webp';
+        } else if (contentType.includes('jpeg') || contentType.includes('jpg')) {
+            mimeType = 'image/jpeg';
+        }
+        
         res.json({
             success: true,
             sessionId: sessionId,
-            captcha: `data:image/jpeg;base64,${base64Image}`
+            captcha: `data:${mimeType};base64,${base64Image}`
         });
     } catch (error) {
         console.error('Captcha error:', error.message);
-        res.status(500).json({
+        
+        // Provide more specific error messages based on the error type
+        let errorMessage = 'Failed to fetch captcha';
+        let errorCode = 'UNKNOWN_ERROR';
+        
+        if (error.code === 'ENOTFOUND' || error.code === 'ECONNREFUSED') {
+            errorMessage = 'Unable to connect to GGSIPU portal. Please check your internet connection or try again later.';
+            errorCode = 'CONNECTION_FAILED';
+        } else if (error.code === 'ETIMEDOUT' || error.code === 'ECONNABORTED') {
+            errorMessage = 'Connection to GGSIPU portal timed out. Please try again.';
+            errorCode = 'TIMEOUT';
+        } else if (error.response && error.response.status >= 500) {
+            errorMessage = 'GGSIPU portal is experiencing issues. Please try again later.';
+            errorCode = 'PORTAL_ERROR';
+        }
+        
+        res.status(503).json({
             success: false,
-            error: 'Failed to fetch captcha'
+            error: errorMessage,
+            errorCode: errorCode
         });
     }
 });
