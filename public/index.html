@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GGSIPU Result Viewer</title>
+    <link rel="stylesheet" href="css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header>
+            <h1>GGSIPU Result Viewer</h1>
+            <p>View your results with CGPA/SGPA calculations and visualizations</p>
+        </header>
+
+        <!-- Login Section -->
+        <section id="loginSection" class="section">
+            <div class="card">
+                <h2>Student Login</h2>
+                <p class="info-text">Enter your GGSIPU portal credentials to fetch and view your results</p>
+                <form id="loginForm">
+                    <div class="form-group">
+                        <label for="enrollmentNo">Enrollment Number</label>
+                        <input type="text" id="enrollmentNo" name="enrollmentNo" required placeholder="e.g., 11015603123">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="password">Password</label>
+                        <input type="password" id="password" name="password" required placeholder="Your GGSIPU password">
+                    </div>
+                    
+                    <div class="form-group captcha-group">
+                        <div class="captcha-container">
+                            <img id="captchaImage" src="" alt="Loading captcha..." />
+                            <button type="button" id="refreshCaptcha" class="btn-secondary">↻</button>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="captcha">Enter Captcha</label>
+                        <input type="text" id="captcha" name="captcha" required placeholder="Enter captcha text">
+                    </div>
+                    
+                    <div class="form-actions">
+                        <button type="submit" id="loginBtn" class="btn-primary">Login & Fetch Results</button>
+                    </div>
+                    
+                    <div id="loginError" class="error-message"></div>
+                </form>
+                
+                <div class="demo-section">
+                    <p class="demo-text">Can't connect to GGSIPU portal? Try the demo mode:</p>
+                    <button type="button" id="demoBtn" class="btn-demo">View Demo Results</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Results Section -->
+        <section id="resultsSection" class="section hidden">
+            <!-- Student Info -->
+            <div class="card student-info">
+                <h2>Student Information</h2>
+                <div class="info-grid">
+                    <div class="info-item">
+                        <span class="label">Name:</span>
+                        <span id="studentName" class="value"></span>
+                    </div>
+                    <div class="info-item">
+                        <span class="label">Enrollment No:</span>
+                        <span id="studentEnrollment" class="value"></span>
+                    </div>
+                    <div class="info-item">
+                        <span class="label">Programme:</span>
+                        <span id="studentProgramme" class="value"></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CGPA Display -->
+            <div class="card cgpa-card">
+                <h2>Overall Performance</h2>
+                <div class="cgpa-display">
+                    <div class="cgpa-value">
+                        <span class="label">CGPA</span>
+                        <span id="cgpaValue" class="value">0.00</span>
+                    </div>
+                    <div class="cgpa-indicator">
+                        <div id="cgpaBar" class="cgpa-bar"></div>
+                    </div>
+                    <div class="total-credits">
+                        <span class="label">Total Credits:</span>
+                        <span id="totalCredits" class="value">0</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Charts -->
+            <div class="charts-container">
+                <div class="card chart-card">
+                    <h3>Semester-wise SGPA</h3>
+                    <canvas id="sgpaChart"></canvas>
+                </div>
+                
+                <div class="card chart-card">
+                    <h3>Subject-wise Performance</h3>
+                    <canvas id="subjectChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Semester Results -->
+            <div id="semesterResults"></div>
+
+            <!-- Actions -->
+            <div class="actions">
+                <button id="backBtn" class="btn-secondary">Back to Login</button>
+            </div>
+        </section>
+
+        <!-- Loading Overlay -->
+        <div id="loadingOverlay" class="loading-overlay hidden">
+            <div class="spinner"></div>
+            <p>Loading...</p>
+        </div>
+    </div>
+
+    <footer>
+        <p>GGSIPU Result Viewer - For educational purposes only</p>
+    </footer>
+
+    <script src="js/app.js"></script>
+</body>
+</html>
