@@ -290,13 +290,22 @@ Tests connectivity to the GGSIPU portal. Useful for debugging deployment issues.
 
 ## Environment Variables
 
-The application uses the following environment variable:
+The application uses the following environment variables:
 
 - `PORT` - Server port (default: 3000)
+- `REJECT_UNAUTHORIZED` - SSL certificate validation (default: true)
+  - Set to `'false'` only if GGSIPU portal has SSL certificate issues
+  - **Security Warning**: Disabling SSL validation poses security risks
 
-You can set this in a `.env` file for local development:
+You can set these in a `.env` file for local development:
 ```
 PORT=3000
+REJECT_UNAUTHORIZED=true
+```
+
+For production, only disable SSL validation if absolutely necessary:
+```
+REJECT_UNAUTHORIZED=false
 ```
 
 ## CGPA/SGPA Calculation

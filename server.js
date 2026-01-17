@@ -49,6 +49,11 @@ loadCredits();
 // Helper function to create axios instance with cookies
 function createAxiosInstance(sessionId) {
     const cookies = sessions.get(sessionId) || '';
+    
+    // SSL certificate validation - configurable via environment variable
+    // Only disable in development or if GGSIPU portal has SSL issues
+    const rejectUnauthorized = process.env.REJECT_UNAUTHORIZED !== 'false';
+    
     return axios.create({
         headers: {
             'Cookie': cookies,
@@ -64,7 +69,7 @@ function createAxiosInstance(sessionId) {
         validateStatus: () => true,
         timeout: 30000,
         httpsAgent: new (require('https').Agent)({
-            rejectUnauthorized: false // Allow self-signed certificates if needed
+            rejectUnauthorized: rejectUnauthorized
         })
     });
 }
