@@ -2,6 +2,8 @@
 
 A full-stack web application that acts as a wrapper/proxy to fetch student results from the **official GGSIPU portal** (https://examweb.ggsipu.ac.in/web/login.jsp) and calculate CGPA/SGPA with visualizations.
 
+📊 **[View System Architecture Flowchart](FLOWCHART.md)** - Comprehensive reverse-engineered documentation of the application's architecture, workflows, and data flows.
+
 ## Features
 
 - **Real GGSIPU Portal Integration**: Directly fetches results from the official GGSIPU examination portal
@@ -33,6 +35,7 @@ A full-stack web application that acts as a wrapper/proxy to fetch student resul
 ├── server.js                                          # Express backend server with GGSIPU integration
 ├── package.json                                       # Node.js dependencies
 ├── ipu_all_subjects_all_years_all_branches.csv       # Subject credits database
+├── FLOWCHART.md                                       # System architecture flowchart documentation
 ├── public/                                            # Frontend files
 │   ├── index.html                                    # Main HTML file
 │   ├── css/
@@ -361,6 +364,25 @@ The application automatically:
 - Check browser console for errors
 - Verify backend server is running
 - Check if GGSIPU portal structure has changed
+
+## Documentation
+
+### System Architecture Flowchart
+
+For a comprehensive understanding of the application's architecture, workflows, and data flows, refer to the [**System Architecture Flowchart**](FLOWCHART.md).
+
+The flowchart documentation includes:
+- **Overall System Architecture**: High-level component interaction
+- **Application Initialization Flow**: Startup and configuration process
+- **CAPTCHA Fetching Workflow**: How CAPTCHA images are retrieved
+- **Login and Authentication Flow**: Complete authentication process
+- **Result Fetching and Parsing Flow**: HTML parsing with Cheerio
+- **CGPA/SGPA Calculation Logic**: Grade calculation algorithms
+- **Data Visualization Flow**: Chart.js integration and rendering
+- **Demo Mode Flow**: Testing without portal access
+- **Error Handling Flow**: Comprehensive error management
+- **Technology Stack**: Detailed tech breakdown
+- **Security Considerations**: Security measures implemented
 
 ## Contributing
 
