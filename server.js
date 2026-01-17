@@ -96,9 +96,9 @@ app.get('/api/captcha', async (req, res) => {
         const loginPageResponse = await axiosInstance.get('https://examweb.ggsipu.ac.in/web/login.jsp');
         storeCookies(sessionId, loginPageResponse);
         
-        // Then fetch the captcha
+        // Then fetch the captcha from CaptchaServlet
         const captchaResponse = await axiosInstance.get(
-            'https://examweb.ggsipu.ac.in/web/captcha.jsp',
+            'https://examweb.ggsipu.ac.in/web/CaptchaServlet',
             { responseType: 'arraybuffer' }
         );
         storeCookies(sessionId, captchaResponse);

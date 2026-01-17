@@ -122,7 +122,7 @@ CAPTCHA: [Enter the text shown in CAPTCHA image]
 ## API Endpoints
 
 ### GET /api/captcha
-Fetches CAPTCHA image directly from the GGSIPU portal (https://examweb.ggsipu.ac.in/web/captcha.jsp) and returns it as base64. Establishes and maintains session cookies for subsequent requests.
+Fetches CAPTCHA image directly from the GGSIPU portal (https://examweb.ggsipu.ac.in/web/CaptchaServlet) and returns it as base64. Establishes and maintains session cookies for subsequent requests.
 
 **Query Parameters:**
 - `sessionId` (optional): Existing session ID, or a new one will be generated
@@ -215,7 +215,7 @@ Tests connectivity to the GGSIPU portal. Useful for debugging deployment issues.
 ### 1. CAPTCHA Fetching
 - Backend connects to `https://examweb.ggsipu.ac.in/web/login.jsp`
 - Establishes session with GGSIPU portal
-- Fetches CAPTCHA from `https://examweb.ggsipu.ac.in/web/captcha.jsp`
+- Fetches CAPTCHA from `https://examweb.ggsipu.ac.in/web/CaptchaServlet`
 - Returns CAPTCHA as base64 image to frontend
 - Maintains session ID for subsequent requests
 

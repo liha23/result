@@ -37,12 +37,15 @@ async function loadCaptcha() {
         if (data.success) {
             sessionId = data.sessionId;
             captchaImage.src = data.captcha;
+            captchaImage.alt = 'CAPTCHA image';
         } else {
-            showError('Failed to load captcha');
+            showError('Failed to load captcha. Please check your connection or try Demo Mode.');
+            captchaImage.alt = 'Failed to load captcha';
         }
     } catch (error) {
         console.error('Captcha error:', error);
-        showError('Failed to load captcha');
+        showError('Failed to load captcha. Please check your connection or try Demo Mode.');
+        captchaImage.alt = 'Failed to load captcha';
     } finally {
         hideLoading();
     }
