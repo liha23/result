@@ -4,6 +4,7 @@ const cookieParser = require('cookie-parser');
 const cors = require('cors');
 const fs = require('fs');
 const path = require('path');
+const cheerio = require('cheerio');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -51,11 +52,20 @@ function createAxiosInstance(sessionId) {
     return axios.create({
         headers: {
             'Cookie': cookies,
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+            'Accept-Language': 'en-US,en;q=0.9',
+            'Accept-Encoding': 'gzip, deflate, br',
+            'Connection': 'keep-alive',
+            'Upgrade-Insecure-Requests': '1',
             'Referer': 'https://examweb.ggsipu.ac.in/web/login.jsp'
         },
         maxRedirects: 5,
-        validateStatus: () => true
+        validateStatus: () => true,
+        timeout: 30000,
+        httpsAgent: new (require('https').Agent)({
+            rejectUnauthorized: false // Allow self-signed certificates if needed
+        })
     });
 }
 
@@ -119,35 +129,76 @@ app.post('/api/login', async (req, res) => {
         
         const axiosInstance = createAxiosInstance(sessionId);
         
-        // Submit login form
+        // Submit login form - try common form field names
+        const formData = {
+            enrollmentNo: enrollmentNo,
+            enrolmentNo: enrollmentNo, // Alternative spelling
+            password: password,
+            captcha: captcha,
+            captchaText: captcha, // Alternative field name
+            submit: 'Submit',
+            Submit: 'Submit'
+        };
+        
         const loginResponse = await axiosInstance.post(
             'https://examweb.ggsipu.ac.in/web/studentlogin.do',
-            new URLSearchParams({
-                enrollmentNo: enrollmentNo,
-                password: password,
-                captcha: captcha,
-                submit: 'Submit'
-            }).toString(),
+            new URLSearchParams(formData).toString(),
             {
                 headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded'
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'Origin': 'https://examweb.ggsipu.ac.in',
+                    'Referer': 'https://examweb.ggsipu.ac.in/web/login.jsp'
                 }
             }
         );
         
         storeCookies(sessionId, loginResponse);
         
+        console.log('Login response status:', loginResponse.status);
+        console.log('Login response URL:', loginResponse.request?.res?.responseUrl);
+        
         // Check if login was successful
-        if (loginResponse.data.includes('Invalid') || loginResponse.data.includes('incorrect')) {
+        const responseText = loginResponse.data.toLowerCase();
+        if (responseText.includes('invalid') || 
+            responseText.includes('incorrect') ||
+            responseText.includes('wrong') ||
+            responseText.includes('failed')) {
             return res.json({
                 success: false,
-                error: 'Invalid credentials or captcha'
+                error: 'Invalid credentials or captcha. Please try again.'
             });
         }
         
-        // Try to fetch result page
-        const resultResponse = await axiosInstance.get('https://examweb.ggsipu.ac.in/web/view-result.do');
-        storeCookies(sessionId, resultResponse);
+        // Try to fetch result page - try multiple possible URLs
+        let resultResponse;
+        const resultUrls = [
+            'https://examweb.ggsipu.ac.in/web/view-result.do',
+            'https://examweb.ggsipu.ac.in/web/viewResult.do',
+            'https://examweb.ggsipu.ac.in/web/result.do',
+            'https://examweb.ggsipu.ac.in/web/viewstudentresult.do'
+        ];
+        
+        for (const url of resultUrls) {
+            try {
+                resultResponse = await axiosInstance.get(url);
+                storeCookies(sessionId, resultResponse);
+                
+                if (resultResponse.status === 200 && resultResponse.data.includes('table')) {
+                    console.log('Successfully fetched results from:', url);
+                    break;
+                }
+            } catch (err) {
+                console.log(`Failed to fetch from ${url}:`, err.message);
+                continue;
+            }
+        }
+        
+        if (!resultResponse || resultResponse.status !== 200) {
+            return res.json({
+                success: false,
+                error: 'Could not fetch result page. Please try again.'
+            });
+        }
         
         // Parse the result HTML
         const resultData = parseResultHTML(resultResponse.data);
@@ -176,12 +227,8 @@ app.post('/api/login', async (req, res) => {
     }
 });
 
-// Helper function to parse result HTML
+// Helper function to parse result HTML using cheerio
 function parseResultHTML(html) {
-    // NOTE: This parser is a placeholder implementation. The actual GGSIPU result page
-    // structure needs to be analyzed and proper HTML parsing implemented using libraries
-    // like cheerio or jsdom. The current implementation attempts basic regex parsing
-    // but may not work with the actual GGSIPU portal structure.
     const result = {
         studentName: '',
         enrollmentNo: '',
@@ -190,72 +237,152 @@ function parseResultHTML(html) {
     };
     
     try {
-        // Extract student info
-        const nameMatch = html.match(/Student Name[:\s]*([^<\n]+)/i);
-        if (nameMatch) result.studentName = nameMatch[1].trim();
+        const $ = cheerio.load(html);
         
-        const enrolMatch = html.match(/Enrolment No[:\s]*([^<\n]+)/i);
-        if (enrolMatch) result.enrollmentNo = enrolMatch[1].trim();
+        // Extract student information - adjust selectors based on actual GGSIPU HTML structure
+        // Common patterns in GGSIPU portal:
+        // Look for text containing "Student Name:", "Enrollment No:", etc.
         
-        const progMatch = html.match(/Programme[:\s]*([^<\n]+)/i);
-        if (progMatch) result.programme = progMatch[1].trim();
-        
-        // Parse semester data from tables
-        // This would need actual HTML parsing based on GGSIPU's result page structure
-        // For development, we'll extract what we can
-        
-        // Look for semester tables
-        const semesterPattern = /<table[^>]*>([\s\S]*?)<\/table>/gi;
-        let semMatch;
-        let semNumber = 1;
-        
-        while ((semMatch = semesterPattern.exec(html)) !== null) {
-            const tableHTML = semMatch[1];
+        // Method 1: Try to find by label text
+        $('td, th, span, div').each(function() {
+            const text = $(this).text().trim();
             
-            // Look for subject rows
-            const subjects = [];
-            const rowPattern = /<tr[^>]*>([\s\S]*?)<\/tr>/gi;
-            let rowMatch;
-            
-            while ((rowMatch = rowPattern.exec(tableHTML)) !== null) {
-                const rowHTML = rowMatch[1];
-                const cellPattern = /<td[^>]*>([\s\S]*?)<\/td>/gi;
-                const cells = [];
-                let cellMatch;
-                
-                while ((cellMatch = cellPattern.exec(rowHTML)) !== null) {
-                    const cellText = cellMatch[1].replace(/<[^>]*>/g, '').trim();
-                    cells.push(cellText);
+            if (text.match(/student\s+name/i)) {
+                const nextCell = $(this).next();
+                if (nextCell.length) {
+                    result.studentName = nextCell.text().trim();
                 }
+            }
+            
+            if (text.match(/enrol(l)?ment\s+no/i)) {
+                const nextCell = $(this).next();
+                if (nextCell.length) {
+                    result.enrollmentNo = nextCell.text().trim();
+                }
+            }
+            
+            if (text.match(/programme/i)) {
+                const nextCell = $(this).next();
+                if (nextCell.length) {
+                    result.programme = nextCell.text().trim();
+                }
+            }
+        });
+        
+        // Parse result tables
+        // GGSIPU typically has tables with semester results
+        let semesterNumber = 1;
+        
+        $('table').each(function() {
+            const table = $(this);
+            const subjects = [];
+            
+            // Look for header row to identify column positions
+            let codeCol = -1, nameCol = -1, internalCol = -1, externalCol = -1, totalCol = -1;
+            
+            table.find('tr').each(function(rowIndex) {
+                const row = $(this);
+                const cells = row.find('td, th');
                 
-                // If row has enough cells and looks like a subject row
-                if (cells.length >= 4 && cells[0] && !cells[0].includes('S.No')) {
-                    const subjectCode = cells[1] || '';
-                    const subjectName = cells[2] || '';
-                    const internalMarks = parseInt(cells[3]) || 0;
-                    const externalMarks = parseInt(cells[4]) || 0;
-                    const totalMarks = internalMarks + externalMarks;
-                    
-                    if (subjectCode && totalMarks > 0) {
-                        subjects.push({
-                            code: subjectCode,
-                            name: subjectName,
-                            internal: internalMarks,
-                            external: externalMarks,
-                            total: totalMarks
+                // First row might be header
+                if (rowIndex === 0) {
+                    cells.each(function(colIndex) {
+                        const headerText = $(this).text().trim().toLowerCase();
+                        
+                        if (headerText.includes('code') || headerText.includes('sub') && headerText.includes('no')) {
+                            codeCol = colIndex;
+                        }
+                        if (headerText.includes('subject') && headerText.includes('name')) {
+                            nameCol = colIndex;
+                        }
+                        if (headerText.includes('internal') || headerText.includes('int') || headerText.includes('mid')) {
+                            internalCol = colIndex;
+                        }
+                        if (headerText.includes('external') || headerText.includes('ext') || headerText.includes('end')) {
+                            externalCol = colIndex;
+                        }
+                        if (headerText.includes('total') || headerText.includes('grand')) {
+                            totalCol = colIndex;
+                        }
+                    });
+                } else {
+                    // Data rows
+                    if (cells.length >= 4) {
+                        const cellValues = [];
+                        cells.each(function() {
+                            cellValues.push($(this).text().trim());
                         });
+                        
+                        // Try to identify subject code (usually pattern like ES-101, ETCS-101, etc.)
+                        let subjectCode = '';
+                        let subjectName = '';
+                        let internal = 0;
+                        let external = 0;
+                        let total = 0;
+                        
+                        // If we identified columns from header
+                        if (codeCol >= 0 && codeCol < cellValues.length) {
+                            subjectCode = cellValues[codeCol];
+                        }
+                        if (nameCol >= 0 && nameCol < cellValues.length) {
+                            subjectName = cellValues[nameCol];
+                        }
+                        if (internalCol >= 0 && internalCol < cellValues.length) {
+                            internal = parseInt(cellValues[internalCol]) || 0;
+                        }
+                        if (externalCol >= 0 && externalCol < cellValues.length) {
+                            external = parseInt(cellValues[externalCol]) || 0;
+                        }
+                        if (totalCol >= 0 && totalCol < cellValues.length) {
+                            total = parseInt(cellValues[totalCol]) || 0;
+                        }
+                        
+                        // Fallback: Try to detect by pattern if columns not identified
+                        if (!subjectCode || !subjectName) {
+                            for (let i = 0; i < cellValues.length; i++) {
+                                const val = cellValues[i];
+                                // Subject code pattern: letters-numbers or similar
+                                if (val.match(/^[A-Z]{2,4}-?\d{3}$/i)) {
+                                    subjectCode = val;
+                                    if (i + 1 < cellValues.length) {
+                                        subjectName = cellValues[i + 1];
+                                    }
+                                    break;
+                                }
+                            }
+                        }
+                        
+                        // If we have at least a code and some marks
+                        if (subjectCode && subjectCode.match(/[A-Z]/i)) {
+                            // Calculate total if not provided
+                            if (!total && (internal || external)) {
+                                total = internal + external;
+                            }
+                            
+                            if (total > 0) {
+                                subjects.push({
+                                    code: subjectCode,
+                                    name: subjectName || 'Unknown Subject',
+                                    internal: internal,
+                                    external: external,
+                                    total: total
+                                });
+                            }
+                        }
                     }
                 }
-            }
+            });
             
+            // If we found subjects in this table, add as a semester
             if (subjects.length > 0) {
                 result.semesters.push({
-                    semester: semNumber,
+                    semester: semesterNumber,
                     subjects: subjects
                 });
-                semNumber++;
+                semesterNumber++;
             }
-        }
+        });
+        
     } catch (error) {
         console.error('Parse error:', error.message);
     }
@@ -373,9 +500,36 @@ app.get('/api/demo', (req, res) => {
     });
 });
 
+// Test endpoint to check GGSIPU portal connectivity
+app.get('/api/test-connection', async (req, res) => {
+    try {
+        const sessionId = Date.now().toString();
+        const axiosInstance = createAxiosInstance(sessionId);
+        
+        console.log('Testing connection to GGSIPU portal...');
+        
+        const loginPageResponse = await axiosInstance.get('https://examweb.ggsipu.ac.in/web/login.jsp');
+        
+        res.json({
+            success: true,
+            status: loginPageResponse.status,
+            message: 'Successfully connected to GGSIPU portal',
+            hasLoginForm: loginPageResponse.data.includes('login') || loginPageResponse.data.includes('enrol'),
+            responseLength: loginPageResponse.data.length
+        });
+    } catch (error) {
+        res.json({
+            success: false,
+            error: error.message,
+            message: 'Could not connect to GGSIPU portal. This may be expected in restricted environments.'
+        });
+    }
+});
+
 // Start server
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
     console.log(`Open http://localhost:${PORT} in your browser`);
     console.log(`Demo mode available at: http://localhost:${PORT}/api/demo`);
+    console.log(`Test connection at: http://localhost:${PORT}/api/test-connection`);
 });

@@ -1,32 +1,36 @@
 # GGSIPU Result Viewer
 
-A full-stack web application that acts as a wrapper/proxy to fetch student results from the GGSIPU portal and calculate CGPA/SGPA with visualizations.
+A full-stack web application that acts as a wrapper/proxy to fetch student results from the **official GGSIPU portal** (https://examweb.ggsipu.ac.in/web/login.jsp) and calculate CGPA/SGPA with visualizations.
 
 ## Features
 
-- **Result Fetching**: Fetches student results from GGSIPU portal via backend proxy
-- **CAPTCHA Handling**: Displays and handles CAPTCHA verification
+- **Real GGSIPU Portal Integration**: Directly fetches results from the official GGSIPU examination portal
+- **CAPTCHA Handling**: Fetches and displays actual CAPTCHA from GGSIPU portal
+- **Session Management**: Maintains session cookies for authenticated requests
+- **Smart HTML Parsing**: Uses Cheerio to intelligently parse result tables from GGSIPU's HTML structure
 - **CGPA/SGPA Calculation**: Automatically calculates semester-wise SGPA and overall CGPA
-- **Credit System**: Uses official IPU subject credits from CSV database
+- **Credit System**: Uses official IPU subject credits from CSV database (13,200+ subjects)
 - **Visualizations**: 
   - Semester-wise SGPA bar chart
   - Subject-wise performance line chart
-  - CGPA indicator with visual bar
+  - CGPA indicator with visual progress bar
 - **Detailed Results**: Shows internal and external marks separately for each subject
 - **Responsive Design**: Mobile-friendly UI with modern styling
+- **Demo Mode**: Test the interface without connecting to GGSIPU portal
 
 ## Tech Stack
 
 - **Backend**: Node.js + Express.js
+- **HTML Parsing**: Cheerio (for parsing GGSIPU result pages)
 - **Frontend**: HTML5, CSS3, JavaScript (ES6+)
 - **Charts**: Chart.js
-- **HTTP Client**: Axios (for backend API calls)
+- **HTTP Client**: Axios (with cookie management for session handling)
 
 ## Project Structure
 
 ```
 /
-├── server.js                                          # Express backend server
+├── server.js                                          # Express backend server with GGSIPU integration
 ├── package.json                                       # Node.js dependencies
 ├── ipu_all_subjects_all_years_all_branches.csv       # Subject credits database
 ├── public/                                            # Frontend files
@@ -101,7 +105,10 @@ The application uses the following grading scheme:
 ## API Endpoints
 
 ### GET /api/captcha
-Fetches CAPTCHA image from GGSIPU portal and returns it as base64.
+Fetches CAPTCHA image directly from the GGSIPU portal (https://examweb.ggsipu.ac.in/web/captcha.jsp) and returns it as base64. Establishes and maintains session cookies for subsequent requests.
+
+**Query Parameters:**
+- `sessionId` (optional): Existing session ID, or a new one will be generated
 
 **Response:**
 ```json
@@ -113,7 +120,15 @@ Fetches CAPTCHA image from GGSIPU portal and returns it as base64.
 ```
 
 ### POST /api/login
-Authenticates user and fetches complete result data.
+Authenticates user with GGSIPU portal, fetches complete result data, parses HTML using Cheerio, and calculates CGPA/SGPA.
+
+**Process:**
+1. Submits login form to `https://examweb.ggsipu.ac.in/web/studentlogin.do`
+2. Maintains session cookies
+3. Fetches result page from GGSIPU
+4. Parses HTML tables to extract marks
+5. Maps subject codes to credits from CSV
+6. Calculates grade points and CGPA/SGPA
 
 **Request Body:**
 ```json
@@ -145,6 +160,67 @@ Authenticates user and fetches complete result data.
   }
 }
 ```
+
+### GET /api/demo
+Returns mock result data for testing the interface without connecting to GGSIPU portal.
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "studentName": "VIJAY KUMAR",
+    "enrollmentNo": "11015603123",
+    "programme": "B.Tech - Computer Science & Engineering",
+    "cgpa": "9.25",
+    "totalCredits": 59,
+    "semesters": [...]
+  }
+}
+```
+
+### GET /api/test-connection
+Tests connectivity to the GGSIPU portal. Useful for debugging deployment issues.
+
+**Response:**
+```json
+{
+  "success": true,
+  "status": 200,
+  "message": "Successfully connected to GGSIPU portal",
+  "hasLoginForm": true,
+  "responseLength": 5432
+}
+```
+
+## How It Works
+
+### 1. CAPTCHA Fetching
+- Backend connects to `https://examweb.ggsipu.ac.in/web/login.jsp`
+- Establishes session with GGSIPU portal
+- Fetches CAPTCHA from `https://examweb.ggsipu.ac.in/web/captcha.jsp`
+- Returns CAPTCHA as base64 image to frontend
+- Maintains session ID for subsequent requests
+
+### 2. Authentication & Result Fetching
+- Submits login credentials to GGSIPU portal with session cookies
+- Multiple form field names tried for compatibility
+- Checks response for error messages
+- Tries multiple result page URLs to find the correct one
+- Downloads complete result HTML
+
+### 3. HTML Parsing
+- Uses Cheerio library for robust HTML parsing
+- Intelligently identifies table headers (Subject Code, Name, Internal, External, Total)
+- Extracts student information from various possible locations
+- Parses each semester's result table
+- Handles different table structures and formats
+
+### 4. Grade Calculation
+- Maps subject codes to credits from CSV database
+- Calculates grade points based on total marks
+- Computes SGPA for each semester
+- Computes overall CGPA across all semesters
 
 ## Deployment
 
@@ -228,10 +304,16 @@ The application automatically:
 
 ## Important Notes
 
+- **Real GGSIPU Portal Integration**: This application connects to the actual GGSIPU examination portal (examweb.ggsipu.ac.in)
 - **CORS Bypass**: The backend proxy is essential to bypass CORS restrictions from GGSIPU portal
-- **Session Management**: Sessions are maintained in memory for demo purposes. For production deployments, use Redis or database-backed sessions
-- **HTML Parsing**: The current HTML parser is a placeholder. Production use requires implementing proper parsing based on actual GGSIPU portal structure
-- **Credit Defaults**: If a subject code is not found in the CSV, it defaults to 3 credits with a warning logged
+- **Session Management**: Sessions are maintained in-memory using cookies. For production deployments with multiple servers, use Redis or database-backed sessions
+- **HTML Parsing**: Uses Cheerio library to intelligently parse GGSIPU result pages. Handles various table structures and formats
+- **Connectivity**: The application requires network access to GGSIPU portal. Use demo mode if portal is inaccessible
+- **Credit Mapping**: 13,200+ subject codes mapped to credits from official CSV. Defaults to 3 credits with warning if code not found
+- **Security**: Do not commit sensitive credentials to version control
+- **Rate Limiting**: Be mindful of request rates to GGSIPU portal to avoid being blocked
+- **Development**: Use `npm run dev` for development with auto-restart on file changes
+- **Testing**: Use `/api/test-connection` endpoint to verify GGSIPU portal connectivity
 - **Security**: Do not commit sensitive credentials to version control
 - **Testing**: Test credentials are for development purposes only
 - **Rate Limiting**: Be mindful of request rates to GGSIPU portal
