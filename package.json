@@ -1,0 +1,24 @@
+{
+  "name": "ggsipu-result-wrapper",
+  "version": "1.0.0",
+  "description": "Full-stack website to fetch and display GGSIPU student results with CGPA/SGPA calculations",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "keywords": [
+    "ggsipu",
+    "result",
+    "cgpa",
+    "sgpa"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "axios": "^1.6.2",
+    "cookie-parser": "^1.4.6",
+    "cors": "^2.8.5"
+  }
+}
